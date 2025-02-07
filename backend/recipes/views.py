@@ -1,5 +1,5 @@
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -15,6 +15,7 @@ from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
 from recipes.serializers import (CreateRecipeSerializer, FavoriteSerializer,
                                  RecipeSerializer, ShoppingCartSerializer,
                                  ShortIngredientsSerializer)
+import tempfile
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -34,8 +35,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
-        if self.action in ("list", "retrieve"):
-            return RecipeSerializer
         if self.action in ("create", "partial_update"):
             return CreateRecipeSerializer
 
@@ -134,20 +133,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .values("ingredient__name", "ingredient__measurement_unit")
             .annotate(sum=Sum("amount"))
         )
-        shopping_list = self.ingredients_to_txt(ingredients)
 
-        return HttpResponse(shopping_list, content_type="text/plain")
+        return self.ingredients_to_txt(ingredients)
+
 
     @staticmethod
     def ingredients_to_txt(ingredients):
-        shopping_list = ""
-        for ingredient in ingredients:
-            shopping_list += (
-                f"{ingredient['ingredient__name']}  - "
-                f"{ingredient['sum']}"
-                f"({ingredient['ingredient__measurement_unit']})\n"
-            )
-        return shopping_list
+        shopping_list = "\n".join(
+            f"{ingredient['ingredient_name']} - {ingredient['sum']} ({ingredient['ingredient__measurement_unit']})"
+            for ingredient in ingredients
+        )
+        temp_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt")
+        temp_file.write(shopping_list)
+        temp_file.seek(0)
+        return FileResponse(temp_file, as_attachment=True, filename="shoping_list.txt", content_type="text/plain")
 
     @action(
         detail=True,

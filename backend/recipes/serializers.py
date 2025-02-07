@@ -81,15 +81,13 @@ class CreateShortIngredientsSerializer(serializers.ModelSerializer):
         model = Ingredient
         fields = ("id", "amount")
 
-    def validate_id(self, id):
-        try:
-            Ingredient.objects.get(id=id)
-        except Ingredient.DoesNotExist:
+    def validate_id(self, ingredient_id):
+        if not Ingredient.objects.filter(id=ingredient_id).exists():
             raise serializers.ValidationError(
-                f"Ингредиента с id {id} не существует."
+                f"Ингредиента с id {ingredient_id} не существует."
             )
 
-        return id
+        return ingredient_id
 
     def validate_amount(self, value):
         if value < INGREDIENT_MIN_AMOUNT_IN_RECIPE:
@@ -155,18 +153,14 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def create_ingredients(self, ingredients, recipe):
-        instances = []
-        for element in ingredients:
-            ingredient_id = element["id"]
-            amount = element["amount"]
-
-            instances.append(
-                IngredientInRecipe(
-                    ingredient_id=ingredient_id, recipe=recipe, amount=amount
-                )
+        IngredientInRecipe.objects.bulk_create([
+            IngredientInRecipe(
+                ingredient_id=element["id"],
+                recipe=recipe,
+                amount = element["amount"]
             )
-
-        IngredientInRecipe.objects.bulk_create(instances)
+            for element in ingredients
+        ])
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
@@ -176,13 +170,16 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "image", "cooking_time")
 
 
-class UserRecipeRelationSerializer:
+class UserRecipeRelationSerializer(serializers.Serializer):
 
     class Meta:
         fields = ("user", "recipe")
 
     def to_representation(self, instance):
-        serializer = ShortRecipeSerializer(instance.recipe)
+        serializer = ShortRecipeSerializer(
+            instance.recipe,
+            context=self.context
+        )
         return serializer.data
 
     def validate(self, data, related_name):

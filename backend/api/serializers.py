@@ -20,6 +20,8 @@ class UserProfileSerializer(UserCreateSerializer):
             "last_name",
             "is_subscribed",
             "avatar",
+            "recipes",
+            "recipes_count",
         )
 
     def get_is_subscribed(self, obj):
@@ -61,3 +63,4 @@ class UserProfileAvatarSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Аватар не может быть пустым")
 
         return data
+    

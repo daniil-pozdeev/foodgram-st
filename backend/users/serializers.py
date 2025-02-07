@@ -10,21 +10,15 @@ class SubscriptionSerializer(UserProfileSerializer):
     recipes_count = serializers.ReadOnlyField(source="recipes.count")
 
     class Meta(UserProfileSerializer.Meta):
-        fields = UserProfileSerializer.Meta.fields + (
-            "recipes",
-            "recipes_count",
-        )
+        fields = UserProfileSerializer.Meta.fields
 
     def get_recipes(self, obj):
         request = self.context.get("request")
         recipes = obj.recipes.all()
         recipes_limit = request.query_params.get("recipes_limit")
 
-        if recipes_limit:
-            try:
-                recipes = recipes[:int(recipes_limit)]
-            except ValueError:
-                pass
+        if recipes_limit and recipes_limit.isdigit():
+            recipes = recipes[:int(recipes_limit)]
 
         return ShortRecipeSerializer(
             recipes, context={"request": request}, many=True
@@ -32,29 +26,29 @@ class SubscriptionSerializer(UserProfileSerializer):
 
 
 class CreateSubscriptionSerializer(serializers.ModelSerializer):
-    recipes = serializers.ReadOnlyField(source="author.recipes.all")
     recipes_count = serializers.ReadOnlyField(source="author.recipes.count")
 
     class Meta:
         model = Subscription
-        fields = (
-            "author",
-            "subscriber",
-            "recipes",
-            "recipes_count",
-        )
+        fields = ("author", "subscriber")
         extra_kwargs = {
             "author": {"write_only": True},
             "subscriber": {"write_only": True},
         }
+
 
     def to_representation(self, instance):
         data = UserProfileSerializer(
             instance.author, context={"request": self.context["request"]}
         ).data
 
-        data.update(super().to_representation(instance))
+        data["recipes"] = SubscriptionSerializer(
+            instance.author.recipes.all(),
+            many=True,
+            context={"request": self.context["request"]}
+        ).data
 
+        data["recipes_count"] = instance.author.recipes.count()
         return data
 
     def validate(self, data):

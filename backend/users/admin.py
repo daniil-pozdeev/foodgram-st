@@ -6,7 +6,7 @@ from .models import User
 
 
 @register(User)
-class MyUserAdmin(UserAdmin):
+class UserAdminConfig(UserAdmin):
     list_display = (
         "pk",
         "username",

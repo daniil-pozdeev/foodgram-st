@@ -53,13 +53,13 @@ class Subscription(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="subscriptions_where_author",
+        related_name="followers",
         verbose_name="Автор",
     )
     subscriber = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="subscriptions_where_subscriber",
+        related_name="subscriber",
         verbose_name="Подписчик",
     )
 
@@ -74,4 +74,4 @@ class Subscription(models.Model):
         ordering = ("author__username",)
 
     def __str__(self):
-        return f"{self.subscriber} {self.author}"
+        return f"{self.subscriber} подписан на {self.author}"
