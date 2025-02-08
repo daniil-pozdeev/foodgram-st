@@ -140,7 +140,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @staticmethod
     def ingredients_to_txt(ingredients):
         shopping_list = "\n".join(
-            f"{ingredient['ingredient_name']} - {ingredient['sum']} ({ingredient['ingredient__measurement_unit']})"
+            f"{ingredient['ingredient_name']} - {ingredient['sum']} "
+            f"({ingredient['ingredient__measurement_unit']})"
             for ingredient in ingredients
         )
         temp_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt")
